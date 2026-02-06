@@ -42,9 +42,9 @@ A Python command-line tool that converts EPUB (Electronic Publication) files int
      source .venv/bin/activate
      ```
 
-4. **Install dependencies**:
+4. **Install dependencies from the requirements file**:
    ```bash
-   pip install click beautifulsoup4 lxml xhtml2pdf
+   pip install -r requirements.txt
    ```
 
 ## Usage
