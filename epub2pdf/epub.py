@@ -1,7 +1,11 @@
 import zipfile
 from pathlib import Path
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, XMLParsedAsHTMLWarning
 import xml.etree.ElementTree as ET
+import warnings
+
+# Suppress BeautifulSoup warnings
+warnings.filterwarnings("ignore", category=XMLParsedAsHTMLWarning)
 
 def extract_epub(epub_path, workdir):
     with zipfile.ZipFile(epub_path) as z:
@@ -86,16 +90,15 @@ def get_chapters(workdir):
                         soup = BeautifulSoup(chapter_path.read_text(encoding="utf-8"), "lxml")
                         if soup.body:
                             chapters.append(str(soup.body))
-                    except Exception as e:
-                        print(f"Warning: Could not read {chapter_path}: {e}")
+                    except Exception:
+                        pass  # Silently skip problematic chapters
             
             if chapters:
                 return chapters
-        except Exception as e:
-            print(f"Warning: Could not parse OPF file: {e}")
+        except Exception:
+            pass  # Silently fall back to alphabetical order
     
     # Fallback to alphabetical sorting if OPF parsing fails
-    print("Warning: Using alphabetical order (OPF parsing failed)")
     chapters = []
     for file in sorted(workdir_path.rglob("*.xhtml")):
         soup = BeautifulSoup(file.read_text(encoding="utf-8"), "lxml")
