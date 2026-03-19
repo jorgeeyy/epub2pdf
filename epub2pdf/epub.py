@@ -69,7 +69,13 @@ def get_spine_order(opf_path):
     return spine_items
 
 def get_chapters(workdir):
-    """Extract chapters in the correct reading order from EPUB spine"""
+    """Extract chapters in the correct reading order from EPUB spine.
+    
+    Returns:
+        tuple: (chapters, content_dir) where chapters is a list of HTML body strings
+               and content_dir is the Path to the directory containing the content files
+               (used for resolving relative image paths).
+    """
     workdir_path = Path(workdir)
     
     # Try to get proper reading order from OPF
@@ -94,7 +100,7 @@ def get_chapters(workdir):
                         pass  # Silently skip problematic chapters
             
             if chapters:
-                return chapters
+                return chapters, opf_dir
         except Exception:
             pass  # Silently fall back to alphabetical order
     
@@ -105,4 +111,4 @@ def get_chapters(workdir):
         if soup.body:
             chapters.append(str(soup.body))
     
-    return chapters
+    return chapters, workdir_path

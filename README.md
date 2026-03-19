@@ -6,6 +6,7 @@ A Python command-line tool that converts EPUB (Electronic Publication) files int
 
 ✨ **Smart Chapter Ordering** - Reads EPUB metadata to maintain correct chapter sequence  
 📖 **Professional Formatting** - Applies book-style typography and layout  
+🖼️ **Image Support** - Embeds cover art and inline images from the EPUB  
 🎨 **Custom Styling** - Uses CSS for consistent, readable output  
 🔧 **Pure Python** - No external system dependencies required  
 ⚡ **Simple CLI** - Easy-to-use command-line interface
@@ -51,26 +52,20 @@ A Python command-line tool that converts EPUB (Electronic Publication) files int
 
 ### Basic Conversion
 
-Convert an EPUB file to PDF with default settings:
+Convert an EPUB file to PDF:
 
 ```bash
 python -m epub2pdf.cli book.epub
 ```
 
-This creates `output.pdf` in the current directory.
+This creates `book.pdf` in the current directory (the output filename is derived from the input).
 
 ### Specify Output File
 
-Convert with a custom output filename:
+Override the default output filename:
 
 ```bash
-python -m epub2pdf.cli book.epub -o mybook.pdf
-```
-
-### Full Example
-
-```bash
-python -m epub2pdf.cli "My Book Title.epub" -o "My Book Title.pdf"
+python -m epub2pdf.cli book.epub -o custom-name.pdf
 ```
 
 ### Command-Line Options
@@ -82,7 +77,7 @@ Arguments:
   EPUB_FILE  Path to the input EPUB file (required)
 
 Options:
-  -o, --output TEXT  Output PDF filename (default: output.pdf)
+  -o, --output TEXT  Output PDF filename (defaults to input name with .pdf extension)
   --help            Show this message and exit
 ```
 
@@ -137,7 +132,7 @@ You can customize the styling by editing `epub2pdf/styles.py`.
 **Solution**: Make sure you're running the command from the project root directory and using `python -m epub2pdf.cli`
 
 **Problem**: Images not appearing in PDF  
-**Solution**: This is a known limitation with relative image paths in some EPUB files. The text content will still convert correctly.
+**Solution**: Ensure the EPUB file is not corrupted. The converter resolves relative image paths automatically.
 
 **Problem**: Chapters in wrong order  
 **Solution**: The converter reads the EPUB spine metadata. If the original EPUB has incorrect metadata, the order may be wrong. This has been fixed in the latest version.
@@ -145,7 +140,6 @@ You can customize the styling by editing `epub2pdf/styles.py`.
 ## Limitations
 
 - Some complex CSS from EPUB files may not be fully preserved
-- Images with relative paths may not load correctly
 - Advanced EPUB 3 features (audio, video) are not supported
 - DRM-protected EPUB files cannot be converted
 
@@ -153,10 +147,8 @@ You can customize the styling by editing `epub2pdf/styles.py`.
 
 Contributions are welcome! Here are some areas for improvement:
 
-- Better image path resolution
 - Support for EPUB 3 features
 - Custom CSS templates
-- Progress indicators for large files
 - Batch conversion support
 
 ## License
@@ -165,14 +157,6 @@ This project is open source and available under the MIT License.
 
 ## Author
 
-Created with ❤️ for book lovers and developers
-
-## Acknowledgments
-
-- **xhtml2pdf** - For reliable HTML to PDF conversion
-- **BeautifulSoup** - For robust HTML/XML parsing
-- **Click** - For elegant CLI creation
-
----
+I couldn't pay for pricing so decided to do one for myself.
 
 **Note**: This tool is for personal use with DRM-free EPUB files that you own or have permission to convert.
