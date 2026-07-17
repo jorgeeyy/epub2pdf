@@ -43,15 +43,83 @@ def _resolve_images_in_soup(soup, base_dir):
             logger.warning("Image not found in EPUB: %s", href)
 
 
-def build_html(chapters, epub_root=None):
+def _add_chapter_ids(chapter_parts):
+    """Add id='chapter-N' to the first h1/h2 in each chapter part.
+
+    Also builds a mapping from filename stems to chapter anchor IDs,
+    so we can rewrite TOC links.
+    """
+    stem_to_anchor = {}
+
+    for i, (body_html, source_path) in enumerate(chapter_parts):
+        soup = BeautifulSoup(body_html, "lxml")
+
+        # Find the first h1 or h2 to use as the chapter anchor
+        heading = soup.find("h1") or soup.find("h2")
+        if heading:
+            anchor_id = f"chapter-{i}"
+            existing_id = heading.get("id")
+            if existing_id:
+                anchor_id = existing_id
+            else:
+                heading["id"] = anchor_id
+
+            # Map the source filename stem to this anchor
+            if source_path:
+                stem = Path(source_path).stem
+                stem_to_anchor[stem] = anchor_id
+
+        # Update the body HTML with the modified soup
+        chapter_parts[i] = (str(soup), source_path)
+
+    return chapter_parts, stem_to_anchor
+
+
+def _build_toc_html(toc_entries, stem_to_anchor):
+    """Build an HTML TOC block with rewritten in-page anchor links.
+
+    Args:
+        toc_entries: list of (title, href) from the EPUB nav file
+        stem_to_anchor: mapping from filename stems to chapter anchor IDs
+    """
+    if not toc_entries:
+        return ""
+
+    toc_items = []
+    for title, href in toc_entries:
+        # Strip any fragment from the href
+        href_stem = Path(href).stem if "#" not in href else Path(href.split("#")[0]).stem
+
+        # Look up the anchor ID for this chapter
+        anchor = stem_to_anchor.get(href_stem)
+        if anchor:
+            toc_items.append(f'<li><a href="#{anchor}">{title}</a></li>')
+
+    if not toc_items:
+        return ""
+
+    items_html = "\n".join(toc_items)
+    return f"""
+<nav epub:type="toc" id="toc" role="doc-toc">
+<h1>Table of Contents</h1>
+<ol>
+{items_html}
+</ol>
+</nav>
+"""
+
+
+def build_html(chapters, epub_root=None, toc=None):
     """Build a complete HTML document from chapter body strings.
 
     Args:
-        chapters: list of (body_html, source_path) tuples. source_path is the
-                  Path to the chapter file, used to resolve relative image paths.
-                  Can also be plain strings for backward compatibility.
+        chapters: list of (body_html, source_path) tuples.
         epub_root: fallback directory for resolving images when source_path is None.
+        toc: list of (title, href) TOC entries from the EPUB nav file.
     """
+    # Add chapter IDs and build stem-to-anchor mapping
+    chapters, stem_to_anchor = _add_chapter_ids(list(chapters))
+
     soup_parts = []
     for item in chapters:
         if isinstance(item, tuple):
@@ -77,7 +145,10 @@ def build_html(chapters, epub_root=None):
 
         soup_parts.append(str(chapter_soup))
 
-    body = "".join(soup_parts)
+    body_content = "".join(soup_parts)
+
+    # Build and prepend TOC if available
+    toc_html = _build_toc_html(toc or [], stem_to_anchor)
 
     return f"""
 <!DOCTYPE html>
@@ -89,7 +160,8 @@ def build_html(chapters, epub_root=None):
 </style>
 </head>
 <body>
-{body}
+{toc_html}
+{body_content}
 </body>
 </html>
 """

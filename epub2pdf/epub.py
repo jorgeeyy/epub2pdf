@@ -108,15 +108,127 @@ def _parse_chapter(chapter_path):
     return None
 
 
+def _find_nav_file(workdir):
+    """Find the EPUB navigation (nav) file."""
+    workdir_path = Path(workdir)
+
+    # EPUB 3: look for nav file referenced in OPF
+    opf_path = get_opf_path(workdir)
+    if opf_path and opf_path.exists():
+        try:
+            tree = ET.parse(opf_path)
+            root = tree.getroot()
+            ns = {'opf': 'http://www.idpf.org/2007/opf',
+                  'epub': 'http://www.idpf.org/2007/ops'}
+
+            # Look for item with properties="nav"
+            for item in root.findall('.//opf:manifest/opf:item', ns):
+                if 'nav' in (item.get('properties') or ''):
+                    href = item.get('href')
+                    if href:
+                        nav_path = (opf_path.parent / href).resolve()
+                        if nav_path.exists():
+                            return nav_path
+        except Exception:
+            pass
+
+    # Fallback: find any file with "nav" in the name
+    for nav in workdir_path.rglob("*nav*.xhtml"):
+        return nav
+    for nav in workdir_path.rglob("*nav*.html"):
+        return nav
+
+    # EPUB 2 fallback: look for NCX file
+    for ncx in workdir_path.rglob("*.ncx"):
+        return ncx
+
+    return None
+
+
+def _parse_nav_toc(nav_path):
+    """Parse the navigation file and return flat TOC entries.
+
+    Returns list of (title, href) tuples where href is relative to the
+    nav file's directory.
+    """
+    content = _read_text(nav_path)
+    soup = BeautifulSoup(content, "lxml")
+
+    toc_entries = []
+
+    # Check if it's an EPUB 3 nav file or EPUB 2 NCX
+    if nav_path.suffix.lower() == ".ncx":
+        # NCX format
+        for navpoint in soup.find_all("navpoint"):
+            label = navpoint.find("navlabel")
+            content_tag = navpoint.find("content")
+            if label and content_tag:
+                text = label.get_text(strip=True)
+                src = content_tag.get("src", "")
+                if text and src:
+                    toc_entries.append((text, src))
+    else:
+        # EPUB 3 nav format: find <nav epub:type="toc">
+        toc_nav = soup.find("nav", attrs={"epub:type": "toc"})
+        if not toc_nav:
+            toc_nav = soup.find("nav", id="toc")
+        if not toc_nav:
+            toc_nav = soup.find("nav")
+
+        if toc_nav:
+            # Only get top-level <li> entries (skip nested sub-chapter lists)
+            top_ol = toc_nav.find("ol")
+            if top_ol:
+                for li in top_ol.find_all("li", recursive=False):
+                    a = li.find("a", href=True)
+                    if a:
+                        text = a.get_text(strip=True)
+                        href = a["href"]
+                        if text and href:
+                            toc_entries.append((text, href))
+
+    return toc_entries
+
+
+def _parse_ncx_toc(ncx_path):
+    """Parse an NCX file for TOC entries (EPUB 2 fallback)."""
+    content = _read_text(ncx_path)
+    soup = BeautifulSoup(content, "xml")
+
+    toc_entries = []
+    for navpoint in soup.find_all("navpoint"):
+        label = navpoint.find("navlabel")
+        content_tag = navpoint.find("content")
+        if label and content_tag:
+            text = label.get_text(strip=True)
+            src = content_tag.get("src", "")
+            if text and src:
+                toc_entries.append((text, src))
+
+    return toc_entries
+
+
 def get_chapters(workdir):
     """Extract chapters in the correct reading order from EPUB spine.
 
     Returns:
-        tuple: (chapters, epub_root) where chapters is a list of
-               (body_html, source_path) tuples, and epub_root is the
-               EPUB root directory (used as fallback for image resolution).
+        tuple: (chapters, epub_root, toc) where chapters is a list of
+               (body_html, source_path) tuples, epub_root is the EPUB root
+               directory, and toc is a list of (title, href) TOC entries.
     """
     workdir_path = Path(workdir)
+
+    # Parse TOC from nav/NCX file
+    toc = []
+    nav_path = _find_nav_file(workdir)
+    if nav_path:
+        try:
+            if nav_path.suffix.lower() == ".ncx":
+                toc = _parse_ncx_toc(nav_path)
+            else:
+                toc = _parse_nav_toc(nav_path)
+        except Exception as e:
+            logger.warning("Failed to parse TOC: %s", e)
 
     # Try to get proper reading order from OPF
     opf_path = get_opf_path(workdir)
@@ -142,7 +254,7 @@ def get_chapters(workdir):
                     logger.warning("Chapter file not found, skipping: %s", chapter_path)
 
             if chapters:
-                return chapters, workdir_path
+                return chapters, workdir_path, toc
         except Exception as e:
             logger.warning("OPF/spine parsing failed, falling back to alphabetical order: %s", e)
 
@@ -160,4 +272,4 @@ def get_chapters(workdir):
         except Exception as e:
             logger.warning("Skipping chapter %s: %s", file, e)
 
-    return chapters, workdir_path
+    return chapters, workdir_path, toc

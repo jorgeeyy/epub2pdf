@@ -49,16 +49,16 @@ def convert(epub_file, output, verbose):
 
                 # Step 2: Read chapters
                 bar.label = click.style('Reading chapters', fg='cyan', bold=True)
-                chapters, content_dir = get_chapters(tmp)
+                chapters, content_dir, toc = get_chapters(tmp)
 
                 if not chapters:
                     raise RuntimeError("No readable chapters found in EPUB")
 
                 bar.update(20)
 
-                # Step 3: Build HTML (includes footnote processing)
+                # Step 3: Build HTML (includes footnote processing and TOC)
                 bar.label = click.style('Building HTML', fg='cyan', bold=True)
-                html = build_html(chapters, content_dir)
+                html = build_html(chapters, content_dir, toc=toc)
                 bar.update(30)
 
                 # Step 5: Render PDF (suppress verbose output)
