@@ -1,9 +1,9 @@
 # banner.py
 import click
 from pyfiglet import Figlet
+from . import __version__
 
 APP_NAME = "EPUB2PDF"
-VERSION = "1.0.0"
 AUTHOR = "George Inkoom (@blaq_arab)"
 
 def print_banner():
@@ -13,7 +13,7 @@ def print_banner():
     click.secho(banner, fg="cyan", bold=True)
     click.secho(
         f" Convert EPUB books to PDF format\n"
-        f" Version {VERSION}\n"
+        f" Version {__version__}\n"
         f" © 2026 {AUTHOR}\n",
         fg="cyan"
     )

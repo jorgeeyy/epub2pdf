@@ -1,0 +1,16 @@
+[project]
+name = "epub2pdf"
+version = "0.1.0"
+description = "Convert EPUB e-books to well-formatted PDF documents"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "beautifulsoup4>=4.12",
+    "click>=8.1",
+    "lxml>=5.0",
+    "pyfiglet>=1.0",
+    "xhtml2pdf>=0.2.17",
+]
+
+[project.scripts]
+epub2pdf = "epub2pdf.cli:convert"

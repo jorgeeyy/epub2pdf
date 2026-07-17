@@ -15,7 +15,7 @@ A Python command-line tool that converts EPUB (Electronic Publication) files int
 
 ### Prerequisites
 
-- Python 3.7 or higher
+- Python 3.10 or higher
 - pip (Python package manager)
 
 ### Setup
@@ -43,9 +43,9 @@ A Python command-line tool that converts EPUB (Electronic Publication) files int
      source .venv/bin/activate
      ```
 
-4. **Install dependencies from the requirements file**:
+4. **Install the package**:
    ```bash
-   pip install -r requirements.txt
+   pip install -e .
    ```
 
 ## Usage
@@ -55,38 +55,61 @@ A Python command-line tool that converts EPUB (Electronic Publication) files int
 Convert an EPUB file to PDF:
 
 ```bash
-python -m epub2pdf.cli book.epub
+epub2pdf book.epub
 ```
 
 This creates `book.pdf` in the current directory (the output filename is derived from the input).
+
+### Alternative Entry Points
+
+You can also run the tool without installing:
+
+```bash
+python -m epub2pdf book.epub
+```
+
+Or directly:
+
+```bash
+python -m epub2pdf.cli book.epub
+```
 
 ### Specify Output File
 
 Override the default output filename:
 
 ```bash
-python -m epub2pdf.cli book.epub -o custom-name.pdf
+epub2pdf book.epub -o custom-name.pdf
+```
+
+### Verbose Mode
+
+Enable verbose logging for debugging:
+
+```bash
+epub2pdf book.epub -v
 ```
 
 ### Command-Line Options
 
 ```
-Usage: python -m epub2pdf.cli [OPTIONS] EPUB_FILE
+Usage: epub2pdf [OPTIONS] EPUB_FILE
 
 Arguments:
   EPUB_FILE  Path to the input EPUB file (required)
 
 Options:
   -o, --output TEXT  Output PDF filename (defaults to input name with .pdf extension)
+  -v, --verbose      Enable verbose logging
   --help            Show this message and exit
 ```
 
 ## How It Works
 
-1. **Extraction** - Unzips the EPUB file to access its contents
+1. **Extraction** - Validates and unzips the EPUB file to access its contents
 2. **Metadata Parsing** - Reads the OPF manifest to determine correct chapter order
 3. **Content Processing** - Extracts and combines chapters in sequence
-4. **HTML Assembly** - Builds a complete HTML document with embedded CSS
+4. **HTML Assembly** - Builds a complete HTML document with embedded CSS, resolves images, and processes footnotes in a single pass
 5. **PDF Generation** - Converts the HTML to a formatted PDF file
 
 ## Project Structure
@@ -94,14 +117,17 @@ Options:
 ```
 epub2pdf/
 ├── epub2pdf/
-│   ├── __init__.py
-│   ├── cli.py           # Command-line interface
-│   ├── epub.py          # EPUB extraction and parsing
-│   ├── html_builder.py  # HTML processing and assembly
-│   ├── pdf.py           # PDF generation
-│   └── styles.py        # CSS styling definitions
-├── .gitignore
-└── README.md
+│   ├── __init__.py       # Package init with version
+│   ├── __main__.py       # python -m epub2pdf entry
+│   ├── banner.py         # ASCII art banner
+│   ├── cli.py            # Command-line interface
+│   ├── epub.py           # EPUB extraction and parsing
+│   ├── html_builder.py   # HTML processing and assembly
+│   ├── pdf.py            # PDF generation
+│   └── styles.py         # CSS styling definitions
+├── pyproject.toml
+├── README.md
+└── LICENSE
 ```
 
 ## Dependencies
@@ -129,7 +155,7 @@ You can customize the styling by editing `epub2pdf/styles.py`.
 ### Common Issues
 
 **Problem**: `ModuleNotFoundError: No module named 'epub2pdf'`  
-**Solution**: Make sure you're running the command from the project root directory and using `python -m epub2pdf.cli`
+**Solution**: Install the package with `pip install -e .`, or run from the project root using `python -m epub2pdf`
 
 **Problem**: Images not appearing in PDF  
 **Solution**: Ensure the EPUB file is not corrupted. The converter resolves relative image paths automatically.
