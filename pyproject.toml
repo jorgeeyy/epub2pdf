@@ -12,5 +12,11 @@ dependencies = [
     "xhtml2pdf>=0.2.17",
 ]
 
+[project.optional-dependencies]
+gui = [
+    "PySide6>=6.5",
+]
+
 [project.scripts]
 epub2pdf = "epub2pdf.cli:convert"
+epub2pdf-gui = "epub2pdf.gui:main"
